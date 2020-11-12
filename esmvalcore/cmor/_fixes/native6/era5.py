@@ -81,6 +81,17 @@ class Clt(Fix):
         return cubes
 
 
+class Cl(Fix):
+    """Fixes for cl."""
+    def fix_metadata(self, cubes):
+        for cube in cubes:
+            # Invalid input cube units (ignored on load) were '0-1'
+            cube.units = '%'
+            cube.data = cube.core_data()*100.
+
+        return cubes
+
+
 class Evspsbl(Fix):
     """Fixes for evspsbl."""
     def fix_metadata(self, cubes):
@@ -277,6 +288,16 @@ class AllVars(Fix):
             coord = cube.coord(axis=axis)
             if axis == 'T':
                 coord.convert_units('days since 1850-1-1 00:00:00.0')
+            if axis == 'Z' and coord_def.out_name == '':
+                coord.convert_units('Pa')
+                coord.standard_name = 'air_pressure'
+                coord.var_name = 'plev'
+                coord.long_name = 'pressure'
+                coord.points = coord.core_points().astype('float64')
+                if (coord.bounds is None and len(coord.points) > 1
+                        and coord_def.must_have_bounds == "yes"):
+                    coord.guess_bounds()
+                continue
             if axis == 'Z':
                 coord.convert_units(coord_def.units)
             coord.standard_name = coord_def.standard_name
