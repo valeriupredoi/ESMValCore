@@ -1,6 +1,7 @@
 """Fixes for ERA5."""
 import datetime
 import logging
+from copy import deepcopy
 
 import iris
 import numpy as np
@@ -9,6 +10,23 @@ from ..fix import Fix
 from ..shared import add_scalar_height_coord
 
 logger = logging.getLogger(__name__)
+
+
+def add_generic_alevel_coordinate(cube):
+    """Add generic alevel coordinate to a cube."""
+    z_coord = cube.coord(axis='Z')
+    alevel_coord = iris.coords.AuxCoord(
+        z_coord.points / np.max(z_coord.points),
+        var_name='lev',
+        standard_name='atmosphere_hybrid_sigma_pressure_coordinate',
+        long_name='hybrid sigma pressure coordinate',
+        units='1',
+        attributes={'comment': 'This coordinate is only present to please the '
+                               'ESMValTool and contains arbitrary values. DO '
+                               'NOT USE IT!'},
+    )
+    coord_dims = cube.coord_dims(z_coord)
+    cube.add_aux_coord(alevel_coord, coord_dims)
 
 
 def get_frequency(cube):
@@ -73,10 +91,11 @@ def divide_by_gravity(cube):
 class Clt(Fix):
     """Fixes for clt."""
     def fix_metadata(self, cubes):
+        """Fix metadata."""
         for cube in cubes:
             # Invalid input cube units (ignored on load) were '0-1'
             cube.units = '%'
-            cube.data = cube.core_data()*100.
+            cube.data = cube.core_data() * 100.0
 
         return cubes
 
@@ -84,10 +103,11 @@ class Clt(Fix):
 class Cl(Fix):
     """Fixes for cl."""
     def fix_metadata(self, cubes):
+        """Fix metadata."""
         for cube in cubes:
             # Invalid input cube units (ignored on load) were '0-1'
             cube.units = '%'
-            cube.data = cube.core_data()*100.
+            cube.data = cube.core_data() * 100.0
 
         return cubes
 
@@ -242,6 +262,7 @@ class Rss(Fix):
 class Tasmax(Fix):
     """Fixes for tasmax."""
     def fix_metadata(self, cubes):
+        """Fix metadata."""
         for cube in cubes:
             fix_hourly_time_coordinate(cube)
         return cubes
@@ -250,6 +271,7 @@ class Tasmax(Fix):
 class Tasmin(Fix):
     """Fixes for tasmin."""
     def fix_metadata(self, cubes):
+        """Fix metadata."""
         for cube in cubes:
             fix_hourly_time_coordinate(cube)
         return cubes
@@ -284,22 +306,26 @@ class AllVars(Fix):
             add_scalar_height_coord(cube, 10.)
 
         for coord_def in self.vardef.coordinates.values():
-            axis = coord_def.axis
+            coord_def = deepcopy(coord_def)
+            if coord_def.name == 'alevel':
+                axis = 'Z'
+                coord_def.standard_name = 'air_pressure'
+                coord_def.out_name = 'plev'
+                coord_def.long_name = 'pressure'
+                coord_def.units = 'Pa'
+                coord_def.must_have_bounds = 'yes'
+                add_generic_alevel_coordinate(cube)
+            else:
+                axis = coord_def.axis
             coord = cube.coord(axis=axis)
             if axis == 'T':
                 coord.convert_units('days since 1850-1-1 00:00:00.0')
-            if axis == 'Z' and coord_def.out_name == '':
-                coord.convert_units('Pa')
-                coord.standard_name = 'air_pressure'
-                coord.var_name = 'plev'
-                coord.long_name = 'pressure'
-                coord.points = coord.core_points().astype('float64')
-                if (coord.bounds is None and len(coord.points) > 1
-                        and coord_def.must_have_bounds == "yes"):
-                    coord.guess_bounds()
-                continue
             if axis == 'Z':
                 coord.convert_units(coord_def.units)
+                if (coord_def.standard_name == 'air_pressure' and
+                        coord.points[0] < coord.points[-1]):
+                    cube = iris.util.reverse(cube, coord)
+                    coord = cube.coord(axis='Z')
             coord.standard_name = coord_def.standard_name
             coord.var_name = coord_def.out_name
             coord.long_name = coord_def.long_name
