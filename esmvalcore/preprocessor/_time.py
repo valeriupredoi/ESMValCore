@@ -626,7 +626,7 @@ def _compute_from_origin(cube, operator):
     result.add_dim_coord(correct_time, (0,))
     result.coord('time').bounds = _get_time_bounds(
         result.coord('time'), freq='yr')
-    iris.coord_categorisation.add_year(cube, 'time')
+    iris.coord_categorisation.add_year(result, 'time')
     _aggregate_time_fx(result, cube)
     return result
 
