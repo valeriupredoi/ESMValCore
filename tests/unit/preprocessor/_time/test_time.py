@@ -1353,10 +1353,12 @@ class TestTimeseriesFilter(tests.Test):
                               filter_stats='sum')
 
 
-def make_time_series(number_years=2):
+def make_time_series(number_years=2, origin=0):
     """Make a cube with time only dimension."""
-    times = np.array([i * 30 + 15 for i in range(0, 12 * number_years, 1)])
-    bounds = np.array([i * 30 for i in range(0, 12 * number_years + 1, 1)])
+    times = np.array(
+        [i * 30 + 15 for i in range(origin, 12 * number_years + origin, 1)])
+    bounds = np.array(
+        [i * 30 for i in range(origin, 12 * number_years + origin + 1, 1)])
     bounds = np.array([[bnd, bounds[index + 1]]
                        for index, bnd in enumerate(bounds[:-1])])
     data = np.ones_like(times)
@@ -1369,18 +1371,38 @@ def make_time_series(number_years=2):
     return cube
 
 
-@pytest.mark.parametrize('existing_coord', [True, False])
-def test_annual_average(existing_coord):
+@pytest.mark.parametrize(
+    ['existing_coord', 'from_origin'],
+    [(True, False), (True, True),
+     (False, True), (False, False)])
+def test_annual_average(existing_coord, from_origin):
     """Test for annual average."""
     cube = make_time_series(number_years=2)
     if existing_coord:
         iris.coord_categorisation.add_year(cube, 'time')
 
-    result = annual_statistics(cube)
+    result = annual_statistics(cube, from_origin=from_origin)
     expected = np.array([1., 1.])
     assert_array_equal(result.data, expected)
     expected_time = np.array([180., 540.])
     assert_array_equal(result.coord('time').points, expected_time)
+
+
+@pytest.mark.parametrize('origin', range(1, 12))
+def test_annual_average_from_origin(origin):
+    """Test for annual average with time starting in months other than
+    January."""
+    cube = make_time_series(number_years=2, origin=origin)
+    result = annual_statistics(cube, from_origin=True)
+    wrong_result = annual_statistics(cube)
+    expected = np.array([1., 1.])
+    assert_array_equal(result.data, expected)
+    expected_time = np.array([180., 540.]) + 30 * origin
+    assert_array_equal(result.coord('time').points, expected_time)
+    assert len(result.coord('time').points) == 2
+    assert_raises(
+        AssertionError, assert_array_equal,
+        result.coord('time').points, wrong_result.coord('time').points)
 
 
 @pytest.mark.parametrize('existing_coord', [True, False])

@@ -1093,11 +1093,15 @@ See also :func:`esmvalcore.preprocessor.seasonal_statistics`.
 ``annual_statistics``
 ---------------------
 
-This function produces statistics for each year.
+This function produces statistics for each year. If the parameter ``from_origin`` is
+set to ``False``, performs the aggregation considering a year spans from January to
+December. Otherwise, the aggregation is performed considering a year spans 12 months
+from the first time point in the cube.
 
 Parameters:
     * operator: operation to apply. Accepted values are 'mean',
       'median', 'std_dev', 'min', 'max', 'sum' and 'rms'. Default is 'mean'
+    * from_origin: Accepted values are 'True'/'False'. Default is 'False'.
 
 See also :func:`esmvalcore.preprocessor.annual_statistics`.
 
@@ -1481,7 +1485,7 @@ Parameters:
     be an array of floating point values.
   * ``scheme``: interpolation scheme: either ``'linear'`` or
     ``'nearest'``. There is no default.
-    
+
 See also :func:`esmvalcore.preprocessor.extract_point`.
 
 

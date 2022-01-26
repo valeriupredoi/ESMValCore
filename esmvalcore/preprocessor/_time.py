@@ -599,7 +599,48 @@ def seasonal_statistics(cube,
     return result
 
 
-def annual_statistics(cube, operator='mean'):
+def _compute_from_origin(cube, operator):
+    time_coord = cube.coord('time')
+    origin = time_coord.cell(0).point.year
+    relative_time = iris.coords.DimCoord(
+        time_coord.points - time_coord.points[0],
+        long_name=time_coord.long_name,
+        standard_name=time_coord.standard_name,
+        units=time_coord.units,
+        var_name=time_coord.var_name,)
+    cube.remove_coord('time')
+    cube.remove_coord('year')
+
+    cube.add_dim_coord(relative_time, (0,))
+    iris.coord_categorisation.add_year(cube, 'time')
+
+    result = cube.aggregated_by('year', operator)
+
+    years = len(result.coord('year').points)
+    year_coord = iris.coords.AuxCoord(
+        np.arange(origin, origin + years),
+        standard_name=cube.coord('year').standard_name,
+        long_name=cube.coord('year').long_name,
+        units=cube.coord('year').units,
+        var_name=cube.coord('year').var_name)
+
+    correct_time = iris.coords.DimCoord(
+        result.coord('time').points + time_coord.points[0],
+        long_name=time_coord.long_name,
+        standard_name=time_coord.standard_name,
+        units=time_coord.units,
+        var_name=time_coord.var_name,)
+    result.remove_coord('time')
+    result.remove_coord('year')
+    result.add_dim_coord(correct_time, (0,))
+    result.coord('time').bounds = _get_time_bounds(
+        result.coord('time'), freq='yr')
+    result.add_aux_coord(year_coord, (0,))
+    _aggregate_time_fx(result, cube)
+    return result
+
+
+def annual_statistics(cube, operator='mean', from_origin='False'):
     """Compute annual statistics.
 
     Note that this function does not weight the annual mean if
@@ -616,6 +657,10 @@ def annual_statistics(cube, operator='mean'):
         Available operators: 'mean', 'median', 'std_dev', 'sum', 'min',
         'max', 'rms'
 
+    from_origin: bool, optional
+       Aggregate years considering they span from Jan to Dec or
+       considering they span 12 months from the time coord origin.
+
     Returns
     -------
     iris.cube.Cube
@@ -625,9 +670,10 @@ def annual_statistics(cube, operator='mean'):
     # https://github.com/SciTools/iris/issues/3290
 
     operator = get_iris_analysis_operation(operator)
-
     if not cube.coords('year'):
         iris.coord_categorisation.add_year(cube, 'time')
+        if from_origin:
+            return _compute_from_origin(cube, operator)
     result = cube.aggregated_by('year', operator)
     _aggregate_time_fx(result, cube)
     return result
