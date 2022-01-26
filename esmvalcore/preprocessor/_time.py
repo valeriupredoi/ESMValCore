@@ -601,7 +601,6 @@ def seasonal_statistics(cube,
 
 def _compute_from_origin(cube, operator):
     time_coord = cube.coord('time')
-    origin = time_coord.cell(0).point.year
     relative_time = iris.coords.DimCoord(
         time_coord.points - time_coord.points[0],
         long_name=time_coord.long_name,
@@ -616,14 +615,6 @@ def _compute_from_origin(cube, operator):
 
     result = cube.aggregated_by('year', operator)
 
-    years = len(result.coord('year').points)
-    year_coord = iris.coords.AuxCoord(
-        np.arange(origin, origin + years),
-        standard_name=cube.coord('year').standard_name,
-        long_name=cube.coord('year').long_name,
-        units=cube.coord('year').units,
-        var_name=cube.coord('year').var_name)
-
     correct_time = iris.coords.DimCoord(
         result.coord('time').points + time_coord.points[0],
         long_name=time_coord.long_name,
@@ -635,7 +626,7 @@ def _compute_from_origin(cube, operator):
     result.add_dim_coord(correct_time, (0,))
     result.coord('time').bounds = _get_time_bounds(
         result.coord('time'), freq='yr')
-    result.add_aux_coord(year_coord, (0,))
+    iris.coord_categorisation.add_year(cube, 'time')
     _aggregate_time_fx(result, cube)
     return result
 
