@@ -29,19 +29,19 @@ on:
   #  - main
   schedule:
     - cron: '0 0 * * *'  # nightly
-  issue_comment:
-    types:
-      - created
+  #issue_comment:
+  #  types:
+  #    - created
 
 jobs:
   linux:
     runs-on: "ubuntu-latest"
-    if: ${{ github.event.issue.pull_request && github.event.comment.body == '@runGAtests' }}
     strategy:
       matrix:
         python-version: ["3.7", "3.8", "3.9", "3.10"]
       fail-fast: false
     name: Linux Python ${{ matrix.python-version }}
+    #if: ${{ github.event.issue.pull_request && github.event.comment.body == '@runGAtests' }}
     steps:
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
