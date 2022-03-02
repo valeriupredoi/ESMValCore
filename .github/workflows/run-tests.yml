@@ -21,6 +21,7 @@ on:
   push:
     branches:
       - main
+      - trigger_ga_from_comment
   # run the test only if the PR is to main
   # turn it on if required by a COW !
   #pull_request:
