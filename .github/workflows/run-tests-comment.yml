@@ -11,27 +11,27 @@
 # TODO: read the cron tasking documentation:
 # https://www.netiq.com/documentation/cloud-manager-2-5/ncm-reference/data/bexyssf.html
 
-name: Test
+name: Test via Comment
 
 # runs on a push on main and at the end of every day
 on:
   # triggering on push without branch name will run tests everytime
   # there is a push on any branch
   # turn it on only if needed
-  push:
-    branches:
-      - main
-      #- trigger_ga_from_comment
+  #push:
+  #  branches:
+  #    - main
+  #    - trigger_ga_from_comment
   # run the test only if the PR is to main
   # turn it on if required by a COW2 !
   #pull_request:
   #  branches:
   #  - main
-  schedule:
-    - cron: '0 0 * * *'  # nightly
-  #issue_comment:
-  #  types:
-  #    - created
+  #schedule:
+  #  - cron: '0 0 * * *'  # nightly
+  issue_comment:
+    types:
+      - created
 
 jobs:
   linux:
@@ -41,7 +41,7 @@ jobs:
         python-version: ["3.7", "3.8", "3.9", "3.10"]
       fail-fast: false
     name: Linux Python ${{ matrix.python-version }}
-    #if: ${{ github.event.issue.pull_request && github.event.comment.body == '@runGAtests' }}
+    if: ${{ github.event.issue.pull_request && github.event.comment.body == '@runGAtests' }}
     steps:
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
