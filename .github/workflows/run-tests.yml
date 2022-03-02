@@ -22,7 +22,7 @@ on:
     branches:
       - main
   # run the test only if the PR is to main
-  # turn it on if required
+  # turn it on if required by a COW !
   #pull_request:
   #  branches:
   #  - main
