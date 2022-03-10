@@ -1,13 +1,13 @@
 name: Test via PR Comment
 on:
   issue_comment:
-    if: ${{ github.event.issue.pull_request && github.event.comment.body == '@runGAtests' }}
     types:
       - created
 
 jobs:
+  detect:
+    if: ${{ github.event.issue.pull_request && github.event.comment.body == '@runGAtests' }}
   linux:
-    #if: ${{ github.event.issue.pull_request && github.event.comment.body == '@runGAtests' }}
     runs-on: "ubuntu-latest"
     strategy:
       matrix:
@@ -44,7 +44,6 @@ jobs:
           path: test_linux_artifacts_python_${{ matrix.python-version }}
 
   osx:
-    #if: ${{ github.event.issue.pull_request && github.event.comment.body == '@runGAtests' }}
     runs-on: "macos-latest"
     strategy:
       matrix:
