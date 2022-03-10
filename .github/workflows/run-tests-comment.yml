@@ -7,6 +7,9 @@ on:
 jobs:
   detect:
     if: ${{ github.event.issue.pull_request && github.event.comment.body == '@runGAtests' }}
+    name: Detect if we should run
+    steps:
+      - uses: actions/checkout@v2
   linux:
     runs-on: "ubuntu-latest"
     strategy:
